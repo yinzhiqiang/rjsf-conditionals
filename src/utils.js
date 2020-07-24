@@ -13,8 +13,12 @@ export const toError = (message) => {
   if (env.isDevelopment()) {
     throw new ReferenceError(message);
   } else {
-    console.error(message);
+    logWarning(message);
   }
+};
+
+export const logWarning = (message) => {
+  console.warn(message);
 };
 
 /**
@@ -38,7 +42,7 @@ export const findRelSchemaAndField = (field, schema) => {
     return findRelSchemaAndField(field.substr(separator + 1), refSchema);
   }
 
-  toError(`Failed to retrieve ${refSchema} from schema`);
+  logWarning(`Failed to retrieve nested schema with key ${field}`);
   return { field, schema };
 };
 

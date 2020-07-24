@@ -83,17 +83,13 @@ test("find rel schema with ref array object schema", () => {
 });
 
 test("fail to find rel schema", () => {
-  expect(() => findRelSchemaAndField("email.host", schema)).toThrow();
-  isDevelopmentMock.mockReturnValueOnce(false);
   expect(findRelSchemaAndField("email.host", schema)).toEqual({
     field: "email.host",
-    schema,
+    schema
   });
 });
 
 test("fail to find rel schema field", () => {
-  expect(() => findRelSchemaAndField("email.protocol", schema)).toThrow();
-  isDevelopmentMock.mockReturnValueOnce(false);
   expect(findRelSchemaAndField("email.protocol", schema)).toEqual({
     field: "email.protocol",
     schema,
@@ -101,8 +97,6 @@ test("fail to find rel schema field", () => {
 });
 
 test("invalid field", () => {
-  expect(() => findRelSchemaAndField("lastName.protocol", schema)).toThrow();
-  isDevelopmentMock.mockReturnValueOnce(false);
   expect(findRelSchemaAndField("lastName.protocol", schema)).toEqual({
     field: "lastName.protocol",
     schema,
