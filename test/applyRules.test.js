@@ -7,6 +7,8 @@ import Adapter from "enzyme-adapter-react-16";
 import { configure, mount } from "enzyme";
 import { fireEvent, render } from "@testing-library/react";
 import { waitFor } from "@testing-library/dom";
+import rulesRunner from '../src/rulesRunner';
+import { FormWithConditionals } from '../src/applyRules';
 
 configure({ adapter: new Adapter() });
 
@@ -34,13 +36,14 @@ const RULES = [
 ];
 
 test("Re render on rule change", async () => {
-  let ResForm = applyRules(schema, {}, RULES, Engine)(Form);
 
-  const handleChangeSpy = sinon.spy(ResForm.prototype, "handleChange");
-  const updateConfSpy = sinon.spy(ResForm.prototype, "updateConf");
-  const setStateSpy = sinon.spy(ResForm.prototype, "setState");
+  const runRules = rulesRunner(schema, {}, RULES, Engine);
 
-  const { container } = render(<ResForm formData={{ firstName: "A" }} />);
+  const handleChangeSpy = sinon.spy(FormWithConditionals.prototype, "handleChange");
+  const updateConfSpy = sinon.spy(FormWithConditionals.prototype, "updateConf");
+  const setStateSpy = sinon.spy(FormWithConditionals.prototype, "setState");
+
+  const { container } = render(<FormWithConditionals formComponent={Form} initialSchema={schema} rulesRunner={runRules} formData={{ firstName: "A" }} />);
 
   expect(updateConfSpy.calledOnce).toEqual(true);
   await waitFor(() => {
@@ -62,6 +65,10 @@ test("Re render on rule change", async () => {
   await waitFor(() => {
     expect(setStateSpy.callCount).toEqual(2);
   });
+
+  FormWithConditionals.prototype.handleChange.restore();
+  FormWithConditionals.prototype.updateConf.restore();
+  FormWithConditionals.prototype.setState.restore();
 });
 
 test("onChange called with corrected schema", () => {
@@ -119,4 +126,21 @@ test("chain of changes processed", async () => {
   });
 
   expect(firstNameInput.value).toEqual("");
+});
+
+test("can submit with forwarded ref", async () => {
+  let ResForm = applyRules(schema, {}, RULES, Engine)(Form);
+  const onSubmitSpy = sinon.spy(() => {});
+  let formRef;
+  const { container } = render(
+    <ResForm formData={{ firstName: "first" }} onSubmit={onSubmitSpy} ref={form => {formRef = form;}} />
+  );
+  const firstNameInput = container.querySelector("[id='root_firstName']");
+  await waitFor(() => {
+    expect(firstNameInput.value).toEqual("first");
+  });
+
+  formRef.submit();
+
+  expect(onSubmitSpy.calledOnce).toEqual(true);
 });

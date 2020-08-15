@@ -1,12 +1,13 @@
 import React from "react";
 import Form from "@rjsf/core";
 import Engine from "json-rules-engine-simplified";
-import applyRules from "../src";
 import sinon from "sinon";
 import Adapter from "enzyme-adapter-react-16";
 import { shallow, configure } from "enzyme";
 import { render } from "@testing-library/react";
 import { waitFor } from "@testing-library/dom";
+import rulesRunner from '../src/rulesRunner';
+import { FormWithConditionals } from '../src/applyRules';
 
 configure({ adapter: new Adapter() });
 
@@ -35,47 +36,57 @@ const RULES = [
   },
 ];
 
-test("NO re render on same data", async () => {
-  let ResForm = applyRules(schema, {}, RULES, Engine)(Form);
-  const handleChangeSpy = sinon.spy(ResForm.prototype, "handleChange");
-  const updateConfSpy = sinon.spy(ResForm.prototype, "updateConf");
-  const setStateSpy = sinon.spy(ResForm.prototype, "setState");
+let handleChangeSpy, updateConfSpy, setStateSpy, renderSpy;
 
-  const { rerender } = render(<ResForm formData={{ firstName: "A" }} />);
+beforeEach(function () {
+  handleChangeSpy = sinon.spy(FormWithConditionals.prototype, "handleChange");
+  updateConfSpy = sinon.spy(FormWithConditionals.prototype, "updateConf");
+  setStateSpy = sinon.spy(FormWithConditionals.prototype, "setState");
+  renderSpy = sinon.spy(FormWithConditionals.prototype, "render");
+});
+
+afterEach(function () {
+  FormWithConditionals.prototype.handleChange.restore(); // Unwraps the spy
+  FormWithConditionals.prototype.updateConf.restore();
+  FormWithConditionals.prototype.setState.restore();
+  FormWithConditionals.prototype.render.restore();
+});
+
+test("NO re render on same data", async () => {
+
+  const runRules = rulesRunner(schema, {}, RULES, Engine);
+
+  const { rerender } = render(<FormWithConditionals formComponent={Form} initialSchema={schema} rulesRunner={runRules} formData={{ firstName: "A" }} />);
 
   expect(updateConfSpy.callCount).toEqual(1);
   await waitFor(() => expect(setStateSpy.callCount).toEqual(1));
   expect(handleChangeSpy.notCalled).toEqual(true);
 
-  rerender(<ResForm formData={{ firstName: "A" }} />);
+  rerender(<FormWithConditionals formComponent={Form} initialSchema={schema} rulesRunner={runRules} formData={{ firstName: "A" }} />);
   expect(updateConfSpy.callCount).toEqual(1);
   expect(setStateSpy.callCount).toEqual(1);
   expect(handleChangeSpy.notCalled).toEqual(true);
 });
 
 test("Re render on formData change", async () => {
-  let ResForm = applyRules(schema, {}, RULES, Engine)(Form);
-  const handleChangeSpy = sinon.spy(ResForm.prototype, "handleChange");
-  const updateConfSpy = sinon.spy(ResForm.prototype, "updateConf");
-  const setStateSpy = sinon.spy(ResForm.prototype, "setState");
+  const runRules = rulesRunner(schema, {}, RULES, Engine);
 
-  const { rerender } = render(<ResForm formData={{ firstName: "A" }} />);
+  const { rerender } = render(<FormWithConditionals formComponent={Form} initialSchema={schema} rulesRunner={runRules} formData={{ firstName: "A" }} />);
 
   expect(updateConfSpy.calledOnce).toEqual(true);
   await waitFor(() => expect(setStateSpy.callCount).toEqual(1));
   expect(handleChangeSpy.notCalled).toEqual(true);
 
-  rerender(<ResForm formData={{ firstName: "An" }} />);
+  rerender(<FormWithConditionals formComponent={Form} initialSchema={schema} rulesRunner={runRules} formData={{ firstName: "An" }} />);
   expect(updateConfSpy.callCount).toEqual(2);
   await waitFor(() => expect(setStateSpy.callCount).toEqual(2));
   expect(handleChangeSpy.notCalled).toEqual(true);
 });
 
 test("Re render on non formData change change", () => {
-  let ResForm = applyRules(schema, {}, RULES, Engine)(Form);
-  const spy = sinon.spy(ResForm.prototype, "render");
-  const wrapper = shallow(<ResForm formData={{ firstName: "A" }} some="A" />);
+  const runRules = rulesRunner(schema, {}, RULES, Engine);
+  const wrapper = shallow(<FormWithConditionals formComponent={Form} initialSchema={schema} rulesRunner={runRules} formData={{ firstName: "A" }} some="A" />);
 
   wrapper.setProps({ formData: { firstName: "A" }, some: "B" });
-  expect(spy.calledTwice).toEqual(true);
+  expect(renderSpy.calledTwice).toEqual(true);
 });

@@ -1,10 +1,11 @@
 import React from "react";
 import Form from "@rjsf/core";
 import Engine from "json-rules-engine-simplified";
-import applyRules from "../../src";
 import sinon from "sinon";
 import Adapter from "enzyme-adapter-react-16";
 import { mount, configure } from "enzyme";
+import { FormWithConditionals } from '../../src/applyRules';
+import rulesRunner from '../../src/rulesRunner';
 
 configure({ adapter: new Adapter() });
 
@@ -22,7 +23,7 @@ let uiSchema = {
 };
 
 test("no exception on formData undefined", () => {
-  let ResForm = applyRules(
+  const runRules = rulesRunner(
     schema,
     uiSchema,
     [
@@ -32,11 +33,13 @@ test("no exception on formData undefined", () => {
       },
     ],
     Engine
-  )(Form);
+  );
 
-  const updateConfSpy = sinon.spy(ResForm.prototype, "updateConf");
+  const updateConfSpy = sinon.spy(FormWithConditionals.prototype, "updateConf");
 
-  mount(<ResForm formData={undefined} />);
+  mount(<FormWithConditionals formComponent={Form} initialSchema={schema} initialUiSchema={uiSchema} rulesRunner={runRules} formData={undefined} />);
   expect(updateConfSpy.calledOnce).toEqual(true);
   expect(updateConfSpy.threw()).toEqual(false);
+
+  FormWithConditionals.prototype.updateConf.restore();
 });
