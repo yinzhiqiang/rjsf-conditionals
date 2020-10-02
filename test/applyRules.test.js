@@ -144,3 +144,85 @@ test("can submit with forwarded ref", async () => {
 
   expect(onSubmitSpy.calledOnce).toEqual(true);
 });
+
+test("changes propagated in sequence regardless of function execution timings", async () => {
+
+  const runRules = rulesRunner({
+    type: "object",
+    properties: {
+      a: { type: "number" },
+      b: { type: "number" },
+      c: { type: "string" },
+    },
+  }, {}, [{
+    conditions: { a: { greater: 0 } },
+    event: { type: "firstCall" }
+  }, {
+    conditions: { b: { greater: 10 } },
+    event: { type: "secondCall" }
+  }], Engine, {
+    firstCall: function(a,b,c,d) {
+      var iterations = 10000;
+      var val = 0;
+      for (var i = 0; i < iterations; i++) {
+        for (var j = 0; j < iterations; j++) {
+          val += i * j
+        }
+      }
+      d.c = "first";
+    },
+    secondCall: function(a,b,c,d) { d.c = "second"; }
+  });
+
+  const handleChangeSpy = sinon.spy(FormWithConditionals.prototype, "handleChange");
+  const updateConfSpy = sinon.spy(FormWithConditionals.prototype, "updateConf");
+  const setStateSpy = sinon.spy(FormWithConditionals.prototype, "setState");
+  const onChangeSpy = sinon.spy(() => {});
+
+  const { container } = render(<FormWithConditionals
+    formComponent={Form}
+    initialSchema={schema}
+    rulesRunner={runRules}
+    formData={{
+      a: 0,
+      b: 0
+    }}
+    onChange={onChangeSpy}
+  />);
+
+  await waitFor(() => {
+    expect(updateConfSpy.callCount).toEqual(1);
+  });
+  expect(updateConfSpy.getCall(0).args).toEqual([{"a": 0, "b": 0}])
+  expect(setStateSpy.callCount).toEqual(1);
+  expect(handleChangeSpy.notCalled).toEqual(true);
+
+  const inputA = container.querySelector("[id='root_a']");
+  const inputB = container.querySelector("[id='root_b']");
+  const inputC = container.querySelector("[id='root_c']");
+  expect(inputA.value).toEqual("0");
+  expect(inputB.value).toEqual("0");
+  expect(inputC.value).toEqual("");
+
+  fireEvent.change(inputA, { target: { value: "5" } });
+  fireEvent.change(inputA, { target: { value: "0" } });
+  fireEvent.change(inputB, { target: { value: "50" } });
+
+  await waitFor(() => {
+    expect(updateConfSpy.callCount).toEqual(3);
+  });
+  expect(updateConfSpy.getCall(1).args).toEqual([{"a": 5, "b": 0}, expect.anything()])
+  expect(updateConfSpy.getCall(2).args).toEqual([{"a": 0, "b": 50}, expect.anything()])
+
+  expect(setStateSpy.callCount).toEqual(2);
+
+  expect(inputC.value).toEqual("second");
+
+  expect(onChangeSpy.callCount).toEqual(2);
+  expect(onChangeSpy.getCall(0).args[0].formData).toEqual({"a": 0, "b": 0});
+  expect(onChangeSpy.getCall(1).args[0].formData).toEqual({"a": 0, "b": 50, c: 'second'});
+
+  FormWithConditionals.prototype.handleChange.restore();
+  FormWithConditionals.prototype.updateConf.restore();
+  FormWithConditionals.prototype.setState.restore();
+});
