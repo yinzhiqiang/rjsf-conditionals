@@ -1,18 +1,29 @@
 import execute from "./actions";
-import deepcopy from "deepcopy";
+import { cloneDeep } from "lodash";
 const { utils } = require("@rjsf/core");
 const { deepEquals } = utils;
 
 function doRunRules(engine, formData, schema, uiSchema, extraActions = {}) {
-  let schemaCopy = deepcopy(schema);
-  let uiSchemaCopy = deepcopy(uiSchema);
-  let formDataCopy = deepcopy(formData);
+  let schemaCopy = cloneDeep(schema);
+  let uiSchemaCopy = cloneDeep(uiSchema);
+  let formDataCopy = cloneDeep(formData);
 
-  let res = engine.run(formData).then(result => {
+  // Exclude undefined values as they are note valid facts
+  const formDataSanitized = cloneDeep(formData);
+  Object.keys(formDataSanitized).forEach(
+    (key) =>
+      formDataSanitized[key] === undefined && delete formDataSanitized[key]
+  );
+
+  let res = engine.run(formDataSanitized).then((result) => {
     let events;
     if (Array.isArray(result)) {
       events = result;
-    } else if (typeof result === 'object' && result.events && Array.isArray(result.events)) {
+    } else if (
+      typeof result === "object" &&
+      result.events &&
+      Array.isArray(result.events)
+    ) {
       events = result.events;
     } else {
       throw new Error("Unrecognized result from rules engine");
@@ -54,7 +65,6 @@ export default function rulesRunner(
     if (formData === undefined || formData === null) {
       return Promise.resolve({ schema, uiSchema, formData });
     }
-
     return doRunRules(engine, formData, schema, uiSchema, extraActions).then(
       (conf) => {
         if (deepEquals(conf.formData, formData)) {

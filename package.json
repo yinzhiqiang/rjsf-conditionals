@@ -1,12 +1,12 @@
 {
-  "name": "rjsf-conditionals",
+  "name": "@imtf/rjsf-conditionals",
   "description": "Extension of @rjsf/core with conditional field support",
   "private": false,
   "contributors": [
     "mavarazy <mavarazy@gmail.com>",
     "Aivaras Prudnikovas <ivar.prudnikov@gmail.com>"
   ],
-  "version": "1.1.1",
+  "version": "2.1.1",
   "scripts": {
     "build": "rimraf dist lib && npm run build:umd && npm run build:cjs && npm run build:es && npm run build:es:lib",
     "build:umd": "cross-env NODE_ENV=production BABEL_ENV=umd webpack --config webpack.config.dist.js",
@@ -50,13 +50,16 @@
     "node": ">=10"
   },
   "peerDependencies": {
-    "prop-types": "^15.7.2",
-    "react": "^16.9.0",
     "@rjsf/core": "^2.0.0",
-    "core-js": "^2.5.7"
+    "core-js": "^2.5.7",
+    "prop-types": "^15.7.2",
+    "react": "^16.9.0"
   },
   "dependencies": {
     "deepcopy": "^2.0.0",
+    "lodash.clonedeep": "^4.5.0",
+    "lodash.get": "^4.4.2",
+    "lodash.unset": "^4.5.2",
     "selectn": "^1.1.2"
   },
   "devDependencies": {

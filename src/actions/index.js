@@ -19,6 +19,15 @@ export default function execute(
   formData,
   extraActions = {}
 ) {
-  let action = extraActions[type] ? extraActions[type] : DEFAULT_ACTIONS[type];
-  action(params, schema, uiSchema, formData);
+  try {
+    const action = extraActions[type]
+      ? extraActions[type]
+      : DEFAULT_ACTIONS[type];
+
+    const { entity, ...extraData } = formData;
+
+    action(params, schema, uiSchema, entity, extraData);
+  } catch (error) {
+    console.warn(`error when executing action ${type}`);
+  }
 }
