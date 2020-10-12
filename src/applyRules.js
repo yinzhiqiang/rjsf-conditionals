@@ -13,112 +13,6 @@ const { utils } = require("@rjsf/core");
 const { deepEquals } = utils;
 
 /**
- * Intended to be used internally through applyRules(...)
- * but it also needs to be tested
- */
-export class FormWithConditionals extends Component {
-  constructor(props) {
-    super(props);
-
-    // this.handleChange = this.handleChange.bind(this);
-    this.updateConf = this.updateConf.bind(this);
-    let { formData = {} } = this.props;
-
-    this.shouldUpdate = false;
-    this.state = { schema: {}, uiSchema: {} };
-    this.updateConf({ entity: formData });
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    let formDataChanged =
-      nextProps.formData &&
-      !deepEquals({ entity: nextProps.formData }, this.formData);
-    if (formDataChanged) {
-      this.updateConf({ entity: nextProps.formData });
-      this.shouldUpdate = true;
-    } else {
-      this.shouldUpdate =
-        this.shouldUpdate ||
-        !deepEquals(
-          nextProps,
-          Object.assign({}, this.props, { formData: nextProps.formData })
-        );
-    }
-  }
-
-  updateConf(formData) {
-    this.formData = formData;
-    return this.props.runRules(formData).then((conf) => {
-      let dataChanged = !deepEquals(this.formData, conf.formData);
-      this.formData = conf.formData;
-
-      let newState = { schema: conf.schema, uiSchema: conf.uiSchema };
-      let confChanged = !deepEquals(newState, this.state);
-      if (dataChanged || confChanged) {
-        this.shouldUpdate = true;
-        this.setState(newState);
-
-        if (dataChanged) {
-          const { onChange } = this.props;
-          onChange({
-            ...conf,
-            formData: conf.formData.entity,
-          });
-        }
-      }
-
-      return conf;
-    });
-  }
-
-  /** handleChange(change) {
-   let { formData } = change;
-    let updTask = this.updateConf(formData);
-    let { onChange } = this.props;
-    if (onChange) {
-      updTask.then((conf) => {
-        let updChange = Object.assign({}, change, conf);
-        onChange(updChange);
-      });
-    }
-  }*/
-
-  shouldComponentUpdate() {
-    if (this.shouldUpdate) {
-      this.shouldUpdate = false;
-      return true;
-    }
-    return false;
-  }
-
-  render() {
-    const {
-      formComponent: FormComponent,
-      schema,
-      uiSchema,
-      rulesRunner,
-      forwardedRef,
-      ...props
-    } = this.props;
-    // Assignment order is important
-    let formConf = Object.assign({}, props, this.state, {
-      //  onChange: this.handleChange,
-      //   formData: this.formData,
-    });
-    return <FormComponent ref={forwardedRef} {...formConf} />;
-  }
-}
-
-FormWithConditionals.propTypes = {
-  formComponent: PropTypes.oneOfType([PropTypes.element, PropTypes.func])
-    .isRequired,
-  runRules: PropTypes.func.isRequired,
-  schema: PropTypes.object.isRequired,
-  uiSchema: PropTypes.object,
-  forwardedRef: PropTypes.any,
-};
-
-/**
  * Usage:
  * const ConditionalForm = applyRules(...)(RjsfFormComponent);
  * return <ConditionalForm formData={formData} onSubmit={handleSubmit} />
@@ -135,6 +29,7 @@ export default function applyRules(
   rules,
   Engine,
   extraActions = {},
+  formRef,
   ...props
 ) {
   if (env.isDevelopment()) {
@@ -186,16 +81,92 @@ export default function applyRules(
   const runRules = rulesRunner(schema, uiSchema, rules, Engine, extraActions);
 
   return (FormComponent) => {
-    return React.memo((props) => {
-      return (
-        <FormWithConditionals
-          formComponent={FormComponent}
-          runRules={runRules}
-          schema={schema}
-          uiSchema={uiSchema}
-          {...props}
-        />
-      );
-    });
+    class FormWithConditionals extends Component {
+      constructor(props) {
+        super(props);
+
+        // this.handleChange = this.handleChange.bind(this);
+        this.updateConf = this.updateConf.bind(this);
+        let { formData = {} } = this.props;
+
+        this.shouldUpdate = false;
+        this.state = { schema: {}, uiSchema: {} };
+        this.updateConf({ entity: formData });
+      }
+
+      UNSAFE_componentWillReceiveProps(nextProps) {
+        let formDataChanged =
+          nextProps.formData &&
+          !deepEquals({ entity: nextProps.formData }, this.formData);
+        if (formDataChanged) {
+          this.updateConf({ entity: nextProps.formData });
+          this.shouldUpdate = true;
+        } else {
+          this.shouldUpdate =
+            this.shouldUpdate ||
+            !deepEquals(
+              nextProps,
+              Object.assign({}, this.props, { formData: nextProps.formData })
+            );
+        }
+      }
+
+      updateConf(formData) {
+        this.formData = formData;
+        return runRules(formData).then((conf) => {
+          let dataChanged = !deepEquals(this.formData, conf.formData);
+          this.formData = conf.formData;
+
+          let newState = { schema: conf.schema, uiSchema: conf.uiSchema };
+          let confChanged = !deepEquals(newState, this.state);
+          if (dataChanged || confChanged) {
+            this.shouldUpdate = true;
+            this.setState(newState);
+
+            if (dataChanged) {
+              const { onChange } = this.props;
+              onChange({
+                ...conf,
+                formData: conf.formData.entity,
+              });
+            }
+          }
+
+          return conf;
+        });
+      }
+
+      /** handleChange(change) {
+   let { formData } = change;
+    let updTask = this.updateConf(formData);
+    let { onChange } = this.props;
+    if (onChange) {
+      updTask.then((conf) => {
+        let updChange = Object.assign({}, change, conf);
+        onChange(updChange);
+      });
+    }
+  }*/
+
+      shouldComponentUpdate() {
+        if (this.shouldUpdate) {
+          this.shouldUpdate = false;
+          return true;
+        }
+        return false;
+      }
+
+      render() {
+        const { schema, uiSchema, ...props } = this.props;
+        // Assignment order is important
+        let formConf = Object.assign({}, props, this.state, {
+          //  onChange: this.handleChange,
+          //   formData: this.formData,
+          ref: formRef,
+        });
+        return <FormComponent {...formConf} />;
+      }
+    }
+    return FormWithConditionals;
   };
 }
