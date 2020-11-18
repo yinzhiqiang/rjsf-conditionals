@@ -1,5 +1,5 @@
 {
-  "name": "@imtf/rjsf-conditionals",
+  "name": "@coocoon/rjsf-conditionals",
   "description": "Extension of @rjsf/core with conditional field support",
   "private": false,
   "contributors": [
