@@ -3,6 +3,7 @@ import require from "./require";
 import uiAppend from "./uiAppend";
 import uiReplace from "./uiReplace";
 import uiOverride from "./uiOverride";
+import dataTransform from "./dataTransform";
 
 export const DEFAULT_ACTIONS = {
   remove,
@@ -10,6 +11,7 @@ export const DEFAULT_ACTIONS = {
   uiAppend,
   uiReplace,
   uiOverride,
+  dataTransform,
 };
 
 export default function execute(
