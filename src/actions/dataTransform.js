@@ -19,13 +19,12 @@ import { toArray } from "../utils";
  */
 function doPick(data, params) {
   if (!params) { throw new Error(`cannot get params to pick data`); }
-  let fields = toArray(params);
   let pickedData = {}; 
-
-  fields.forEach(field => { 
+  let { fields = [] } = params;
+  fields.forEach((field) => {
     let { path, defaultValue = null } = field;
     let value = get(data, path, defaultValue);
-    set(pickedData,path,value);
+    set(pickedData, path, value);
   });
 
   return pickedData;
@@ -50,20 +49,8 @@ export default function dataTransform(params, schema, uiSchema, formData) {
     default:
       break;
   }
-    let fieldArr = toArray(field);
-    fieldArr.forEach((field) =>
-      doRemove(
-        findRelSchemaAndField(field, schema),
-        findRelUiSchema(field, uiSchema),
-        formData
-      )
-    );
   }
 
   dataTransform.propTypes = {
     type: PropTypes.string.isRequired,
   };
-  
-  dataTransform.validate = validateFields("dataTransform", function ({ type, ...otherOptions }) {
-    return field;
-  });  
