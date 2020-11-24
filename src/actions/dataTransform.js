@@ -30,7 +30,7 @@ function doPick(formData, params) {
 
   fields.forEach((field) => {
     let { path, defaultValue = null } = field;
-    if (defaultValue&&!has(formData,path)){
+    if (!has(formData,path)){
       set(formData, path, defaultValue);
     }    
   });
